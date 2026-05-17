@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Markets · NV">
+<title>Markets · NV</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1318; --s1:#161c24; --s2:#1c242f; --s3:#222d3a;
+  --border:#28374a; --border2:#334d66;
+  --text:#9ab8d4; --texthi:#e8f4ff; --textlo:#4a6680; --textmd:#6a90ae;
+  --green:#00e87a; --red:#ff4466; --amber:#ffd044;
+  --blue:#5599ff; --cyan:#00ddc8; --purple:#aa77ff; --gold:#ffbb55;
+  --mono:'Space Mono',monospace; --head:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;
+  overflow-x:hidden;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:calc(env(safe-area-inset-bottom) + 58px);
+}
+::-webkit-scrollbar{width:0;height:0}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity:.6;
+}
+
+/* ── TOP BAR ── */
+.topbar{
+position:sticky;top:0;z-index:100;
+background:rgba(5,8,15,.94);
+backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+border-bottom:1px solid var(–border2);
+padding:10px 16px 8px;
+display:flex;align-items:center;justify-content:space-between;
+}
+.topbar-brand{font-family:var(–head);font-size:17px;font-weight:800;color:var(–texthi);letter-spacing:-.01em}
+.topbar-brand span{color:var(–amber)}
+.topbar-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.live-pill{
+display:inline-flex;align-items:center;gap:5px;font-size:9px;color:var(–green);
+letter-spacing:.1em;background:rgba(0,232,122,.08);border:1px solid rgba(0,232,122,.2);
+padding:2px 7px;border-radius:20px;
+}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(–green);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,232,122,.5)}50%{opacity:.4;box-shadow:0 0 0 5px rgba(0,232,122,0)}}
+.update-time{font-size:9px;color:var(–textlo)}
+
+/* ── NAV ── */
+.nav{
+position:fixed;bottom:0;left:0;right:0;z-index:200;
+background:rgba(5,8,15,.97);
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+border-top:1px solid var(–border2);
+display:grid;grid-template-columns:repeat(4,1fr);
+padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-btn{
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+padding:8px 4px 6px;gap:3px;border:none;background:transparent;
+color:var(–textmd);font-family:var(–mono);font-size:9px;letter-spacing:.06em;cursor:pointer;
+transition:color .2s;
+}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active{color:var(–amber)}
+.nav-btn.active svg{filter:drop-shadow(0 0 5px var(–amber))}
+
+/* ── PAGES ── */
+.page{display:none;animation:fadeIn .22s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARD ── */
+.card{
+margin:12px;background:var(–s1);
+border:1px solid var(–border);border-radius:10px;overflow:hidden;
+}
+.card-head{
+display:flex;align-items:center;justify-content:space-between;
+padding:8px 12px;background:var(–s2);border-bottom:1px solid var(–border);
+}
+.card-title{font-family:var(–head);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(–amber)}
+.card-sub{font-size:9px;color:var(–textlo)}
+
+/* ── CLOCKS — ultra compact single row ── */
+.clocks{display:grid;grid-template-columns:repeat(3,1fr)}
+.clock-cell{
+display:flex;align-items:center;justify-content:space-between;
+padding:7px 10px;border-right:1px solid var(–border);gap:6px;
+}
+.clock-cell:last-child{border-right:none}
+.cc-left{display:flex;flex-direction:column;gap:1px}
+.cc-city{font-size:8px;color:var(–textlo);letter-spacing:.12em;text-transform:uppercase;line-height:1}
+.cc-time{font-family:var(–head);font-size:14px;font-weight:700;color:var(–texthi);line-height:1;letter-spacing:-.02em}
+.cc-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.cc-date{font-size:8px;color:var(–cyan);line-height:1}
+.cc-status{font-size:7px;padding:1px 4px;border-radius:2px;letter-spacing:.05em;line-height:1.4}
+.open{color:var(–green);background:rgba(0,232,122,.12);border:1px solid rgba(0,232,122,.25)}
+.closed{color:var(–red);background:rgba(255,68,102,.12);border:1px solid rgba(255,68,102,.25)}
+.pre{color:var(–amber);background:rgba(255,208,68,.1);border:1px solid rgba(255,208,68,.25)}
+
+/* ── WEATHER — compact inline strip ── */
+.weather-strip{
+display:flex;align-items:center;gap:0;
+}
+.w-block{
+flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+padding:10px 6px;border-right:1px solid var(–border);
+}
+.w-block:last-child{border-right:none}
+.w-block-label{font-size:8px;color:var(–textlo);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.w-block-val{font-family:var(–head);font-size:18px;font-weight:800;color:var(–texthi);line-height:1}
+.w-block-val.icon{font-size:22px;font-family:inherit}
+.w-block-unit{font-size:9px;color:var(–textmd);margin-top:2px}
+
+/* ── MARKET ROWS ── */
+.mkt-row{
+display:grid;grid-template-columns:1fr auto auto;
+align-items:center;gap:8px;padding:9px 12px;
+border-bottom:1px solid rgba(22,32,48,.8);transition:background .15s;cursor:pointer;
+}
+.mkt-row:last-child{border-bottom:none}
+.mkt-row:active{background:var(–s3)}
+.mkt-ticker{font-size:11px;font-weight:700;color:var(–amber);letter-spacing:.03em}
+.mkt-name{font-size:10px;color:var(–textlo);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.mkt-price{font-size:13px;font-weight:700;color:var(–texthi);text-align:right;letter-spacing:-.02em;min-width:70px}
+.mkt-chg{font-size:11px;font-weight:700;text-align:right;min-width:56px;padding:3px 6px;border-radius:4px}
+.pos{color:var(–green);background:rgba(0,232,122,.08)}
+.neg{color:var(–red);background:rgba(255,45,85,.08)}
+.neu{color:var(–textmd);background:transparent}
+@keyframes fg{0%{background:rgba(0,232,122,.22)}100%{background:transparent}}
+@keyframes fr{0%{background:rgba(255,45,85,.22)}100%{background:transparent}}
+.flash-g{animation:fg .7s ease-out}
+.flash-r{animation:fr .7s ease-out}
+.shimmer{
+display:inline-block;min-width:50px;
+background:linear-gradient(90deg,var(–s2) 25%,var(–s3) 50%,var(–s2) 75%);
+background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:3px;color:transparent!important;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── FX ── */
+.fx-grid{display:grid;grid-template-columns:repeat(2,1fr)}
+.fx-cell{padding:11px 12px;border-right:1px solid var(–border);border-bottom:1px solid var(–border)}
+.fx-cell:nth-child(2n){border-right:none}
+.fx-cell:nth-last-child(-n+2){border-bottom:none}
+.fx-pair{font-size:10px;font-weight:700;color:var(–cyan);letter-spacing:.08em;margin-bottom:4px}
+.fx-rate{font-family:var(–head);font-size:19px;font-weight:700;color:var(–texthi);line-height:1}
+.fx-chg{font-size:10px;margin-top:3px;font-weight:700}
+
+/* ── NEWS ── */
+.news-item{
+padding:11px 12px;border-bottom:1px solid rgba(22,32,48,.8);
+cursor:pointer;transition:background .15s;
+}
+.news-item:last-child{border-bottom:none}
+.news-item:active{background:var(–s3)}
+.news-meta{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.news-src{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:1px 6px;border-radius:3px;color:var(–purple);background:rgba(155,107,255,.12);border:1px solid rgba(155,107,255,.2)}
+.news-src.fin{color:var(–blue);background:rgba(61,127,255,.12);border-color:rgba(61,127,255,.2)}
+.news-src.bbc{color:var(–red);background:rgba(255,45,85,.12);border-color:rgba(255,45,85,.2)}
+.news-age{font-size:9px;color:var(–textlo)}
+.news-hl{font-size:12px;color:var(–text);line-height:1.45}
+.news-tag{font-size:9px;color:var(–textlo);margin-top:3px}
+.news-loading{padding:24px;text-align:center;color:var(–textlo);font-size:11px;line-height:1.8}
+
+/* ── PORTFOLIO ── */
+.port-row{
+display:grid;grid-template-columns:1fr 72px 50px;
+align-items:center;padding:8px 12px;border-bottom:1px solid rgba(22,32,48,.8);
+}
+.port-row:last-child{border-bottom:none}
+.port-fund{font-size:11px;color:var(–texthi);font-weight:700}
+.port-type{font-size:9px;color:var(–textlo);margin-top:1px}
+.port-val{font-size:12px;font-weight:700;color:var(–texthi);text-align:right}
+.port-alloc{font-size:11px;text-align:right;font-weight:700}
+.alloc-bar-wrap{padding:10px 12px 12px;display:flex;flex-direction:column;gap:7px}
+.alloc-row{display:flex;align-items:center;gap:8px}
+.alloc-label{font-size:10px;color:var(–text);width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alloc-track{flex:1;height:5px;background:var(–s3);border-radius:3px;overflow:hidden}
+.alloc-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+.alloc-pct{font-size:10px;font-weight:700;color:var(–texthi);width:28px;text-align:right}
+
+.divider-label{padding:10px 12px 4px;font-size:9px;color:var(–textlo);letter-spacing:.12em;text-transform:uppercase}
+.ptr{text-align:center;padding:8px;font-size:10px;color:var(–textlo);display:none}
+.ptr.show{display:block}
+.refresh-btn{
+display:block;margin:8px auto;padding:6px 16px;
+background:var(–s2);border:1px solid var(–border2);border-radius:6px;
+color:var(–amber);font-family:var(–mono);font-size:10px;cursor:pointer;
+}
+</style>
+
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">NV<span>·</span>MKT</div>
+  <div class="topbar-right">
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <div class="update-time" id="updateTime">—</div>
+  </div>
+</div>
+
+<!-- file:// warning -->
+
+<div id="file-warning" style="display:none;margin:10px 12px 0;padding:10px 12px;background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.35);border-radius:8px;font-size:11px;line-height:1.6;color:#ffcc00">
+  ⚠️ <b>Running from local file</b> — browsers block network requests from <code>file://</code>.<br>
+  Upload to <b>GitHub Pages</b> or <b>Netlify</b> (free) for live data. See the deployment guide.
+</div>
+<div class="ptr" id="ptr">↻ refreshing…</div>
+
+<!-- ══ PAGE: OVERVIEW ══ -->
+
+<div class="page active" id="page-overview">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">⏱ World Clocks</div>
+      <div class="card-sub" id="todayDate">—</div>
+    </div>
+    <div class="clocks">
+      <div class="clock-cell">
+        <div class="cc-left">
+          <div class="cc-city">Delhi</div>
+          <div class="cc-time" id="clk-delhi">—</div>
+        </div>
+        <div class="cc-right">
+          <div class="cc-date" id="clkd-delhi">—</div>
+          <div class="cc-status" id="mkt-nse">NSE</div>
+        </div>
+      </div>
+      <div class="clock-cell">
+        <div class="cc-left">
+          <div class="cc-city">London</div>
+          <div class="cc-time" id="clk-london">—</div>
+        </div>
+        <div class="cc-right">
+          <div class="cc-date" id="clkd-london">—</div>
+          <div class="cc-status" id="mkt-lse">LSE</div>
+        </div>
+      </div>
+      <div class="clock-cell">
+        <div class="cc-left">
+          <div class="cc-city">Oslo</div>
+          <div class="cc-time" id="clk-oslo">—</div>
+        </div>
+        <div class="cc-right">
+          <div class="cc-date" id="clkd-oslo">—</div>
+          <div class="cc-status" id="mkt-ose">OSE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">🌤 London Weather</div>
+      <div class="card-sub" id="w-updated">open-meteo.com</div>
+    </div>
+    <div class="weather-strip">
+      <div class="w-block">
+        <div class="w-block-label">London</div>
+        <div class="w-block-val icon" id="w-icon">⏳</div>
+        <div class="w-block-unit" id="w-desc">—</div>
+      </div>
+      <div class="w-block">
+        <div class="w-block-label">Temp</div>
+        <div class="w-block-val" id="w-temp">—</div>
+        <div class="w-block-unit">°C</div>
+      </div>
+      <div class="w-block">
+        <div class="w-block-label">Rain</div>
+        <div class="w-block-val" id="w-rain">—</div>
+        <div class="w-block-unit">%</div>
+      </div>
+      <div class="w-block">
+        <div class="w-block-label">Wind</div>
+        <div class="w-block-val" id="w-wind">—</div>
+        <div class="w-block-unit">m/s</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">📈 Global Indices</div>
+      <div class="card-sub">stooq.com</div>
+    </div>
+    <div id="indices-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">💱 FX · INR Cross</div>
+      <div class="card-sub">frankfurter.app · ECB</div>
+    </div>
+    <div class="fx-grid" id="fx-grid"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: MARKETS ══ -->
+
+<div class="page" id="page-markets">
+  <div class="divider-label">Indian ETFs &amp; Funds</div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">🇮🇳 India</div><div class="card-sub">NSE</div></div>
+    <div id="india-list"></div>
+  </div>
+  <div class="divider-label">Thematic ETFs</div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">🎯 Thematic</div><div class="card-sub">UCITS / US</div></div>
+    <div id="thematic-list"></div>
+  </div>
+  <div class="divider-label">Norwegian Funds</div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">🇳🇴 Norway</div><div class="card-sub">Nordnet · NAV daily</div></div>
+    <div id="norway-list"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: NEWS ══ -->
+
+<div class="page" id="page-news">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">📰 London Headlines</div>
+      <div class="card-sub" id="news-count">BBC · Guardian · FT</div>
+    </div>
+    <div id="news-list"><div class="news-loading">Tap to load headlines…<br><button class="refresh-btn" onclick="loadNews(true)">Load News</button></div></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: PORTFOLIO ══ -->
+
+<div class="page" id="page-portfolio">
+  <div class="card">
+    <div class="card-head"><div class="card-title">💼 Pension Portfolio</div><div class="card-sub">Nordnet · NOK</div></div>
+    <div id="pension-rows"></div>
+    <div class="alloc-bar-wrap" id="pension-bars"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">🎯 Thematic Plan</div><div class="card-sub">5 × 20% equal weight</div></div>
+    <div id="thematic-port-rows"></div>
+    <div class="alloc-bar-wrap" id="thematic-bars"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="switchPage('overview',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Overview
+  </button>
+  <button class="nav-btn" onclick="switchPage('markets',this)">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Markets
+  </button>
+  <button class="nav-btn" onclick="switchPage('news',this)">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>
+    News
+  </button>
+  <button class="nav-btn" onclick="switchPage('portfolio',this)">
+    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Portfolio
+  </button>
+</nav>
+
+<script>
+// ══════════════════════════════════
+// DATA CONFIG
+// ══════════════════════════════════
+const INDICES = [
+  {t:'^GSPC',  label:'S&P 500',  name:'US Equity Index'},
+  {t:'^NSEI',  label:'NIFTY 50', name:'India · NSE'},
+  {t:'^BSESN', label:'SENSEX',   name:'India · BSE'},
+  {t:'^FTSE',  label:'FTSE 100', name:'London Stock Exch.'},
+  {t:'^OSEAX', label:'OBX',      name:'Oslo Bors'},
+];
+
+const INDIA = [
+  {t:'HDFCNIFETF.NS',   label:'HDFCNIF',   name:'HDFC Nifty 50 ETF'},
+  {t:'HDFCSMALLCAP.NS', label:'HDFC SML',   name:'HDFC Small Cap Fund'},
+  {t:'NIFTYBEES.NS',    label:'NiftyBees',  name:'Nippon Nifty ETF'},
+];
+
+const THEMATIC = [
+  {t:'DFNS.L',  label:'VanEck Def', name:'VanEck Defense UCITS'},
+  {t:'SMH',     label:'VanEck Semi',name:'VanEck Semiconductor'},
+  {t:'ISEM.L',  label:'iSh Semis',  name:'iShares MSCI Global Semi'},
+  {t:'BGLD.L',  label:'BGF Gold',   name:'BGF World Gold A2'},
+];
+
+const NORWAY_STATIC = [
+  {label:'Fondsfinans Norge', type:'Aktivt fond',   val:30478, chg:2.11,  alloc:40},
+  {label:'Storebrand Indeks', type:'Indeksfond',    val:23324, chg:4.18,  alloc:30},
+  {label:'DNB Teknologi A',   type:'Aktivt fond',   val:21799, chg:-2.63, alloc:30},
+];
+
+const FX = [
+  {from:'NOK', label:'NOK/INR'},
+  {from:'USD', label:'USD/INR'},
+  {from:'EUR', label:'EUR/INR'},
+  {from:'GBP', label:'GBP/INR'},
+];
+
+const THEMATIC_PORT = [
+  'BGF World Gold A2',
+  'VanEck Defense ETF',
+  'VanEck Semiconductor',
+  'iShares MSCI Semis',
+  'Franklin Gold & PM',
+];
+
+const COLORS = ['#ffcc00','#3d7fff','#00cfc0','#9b6bff','#00e87a','#ff2d55'];
+
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+const priceCache = {};
+let newsLoaded = false;
+
+// ══════════════════════════════════
+// PAGE NAV
+// ══════════════════════════════════
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════
+// CLOCKS + MARKET STATUS
+// ══════════════════════════════════
+function updateClocks() {
+  const now = new Date();
+  document.getElementById('todayDate').textContent =
+    now.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+  const zones = {delhi:'Asia/Kolkata', london:'Europe/London', oslo:'Europe/Oslo'};
+  for(const [city, tz] of Object.entries(zones)) {
+    document.getElementById('clk-'+city).textContent =
+      now.toLocaleTimeString('en-GB',{timeZone:tz, hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('clkd-'+city).textContent =
+      now.toLocaleDateString('en-GB',{timeZone:tz, day:'numeric',month:'short'});
+  }
+
+  function mktStat(elId, tz, openH, openM, closeH, closeM, preH, preM) {
+    const fmt = new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',weekday:'short',hour12:false});
+    const parts = fmt.formatToParts(now);
+    const get = type => parts.find(p=>p.type===type)?.value;
+    const h = parseInt(get('hour'),10);
+    const m = parseInt(get('minute'),10);
+    const mins = (h===24?0:h)*60+m;
+    const dayName = get('weekday');
+    const wd = !['Sun','Sat'].includes(dayName);
+    const open=openH*60+openM, close=closeH*60+closeM, pre=preH*60+preM;
+    let cls='closed', txt='CLOSED';
+    if(wd&&mins>=pre&&mins<open){cls='pre';txt='PRE-MKT'}
+    else if(wd&&mins>=open&&mins<close){cls='open';txt='OPEN'}
+    const el=document.getElementById(elId);
+    el.className='cc-status '+cls;
+    el.textContent=txt;
+  }
+  mktStat('mkt-nse','Asia/Kolkata',    9,15,15,30, 9, 0);
+  mktStat('mkt-lse','Europe/London',   8, 0,16,30, 7,30);
+  mktStat('mkt-ose','Europe/Oslo',     9, 0,17,30, 8,30);
+}
+
+// ══════════════════════════════════
+// WEATHER — Open-Meteo (no key)
+// ══════════════════════════════════
+async function loadWeather() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278' +
+      '&current=temperature_2m,weather_code,wind_speed_10m,precipitation_probability' +
+      '&daily=precipitation_probability_max&timezone=Europe%2FLondon&forecast_days=1';
+    const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
+    const d = await res.json();
+    const c = d.current;
+    const ICONS={0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',
+      61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'❄️',80:'🌦',81:'🌧',82:'⛈',95:'⛈',96:'⛈',99:'⛈'};
+    const DESCS={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',
+      51:'Lt drizzle',53:'Drizzle',61:'Lt rain',63:'Rain',65:'Hvy rain',
+      71:'Lt snow',73:'Snow',75:'Hvy snow',80:'Showers',95:'Thunder'};
+    const code = c.weather_code;
+    const windMs = (c.wind_speed_10m / 3.6).toFixed(1);
+    const rainPct = c.precipitation_probability ?? d.daily?.precipitation_probability_max?.[0] ?? 0;
+    document.getElementById('w-icon').textContent = ICONS[code]||'🌡';
+    document.getElementById('w-temp').textContent = Math.round(c.temperature_2m);
+    document.getElementById('w-desc').textContent = DESCS[code]||'—';
+    document.getElementById('w-rain').textContent = Math.round(rainPct);
+    document.getElementById('w-wind').textContent = windMs;
+    document.getElementById('w-updated').textContent =
+      new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    document.getElementById('w-icon').textContent='❌';
+    document.getElementById('w-desc').textContent='unavailable';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// STOCK DATA — Stooq.com CSV
+// Stooq serves CSV with CORS headers — works from any origin
+// including file:// and GitHub Pages with NO proxy needed.
+// URL pattern: https://stooq.com/q/l/?s=TICKER&f=sd2t2ohlcv&h&e=csv
+// Returns: Symbol,Date,Time,Open,High,Low,Close,Volume
+// ══════════════════════════════════════════════════════
+
+// Stooq ticker map  (Stooq uses its own symbols)
+const STOOQ = {
+  '^GSPC' : '^spx',    // S&P 500
+  '^NSEI' : '^nsei',   // Nifty 50
+  '^BSESN': '^bsesn',  // Sensex
+  '^FTSE' : '^ftx',    // FTSE 100
+  '^OSEAX': '^oseax',  // Oslo
+  'HDFCNIFETF.NS'   : 'hdfcnif.in',
+  'HDFCSMALLCAP.NS' : 'hdfcsmallcap.in',
+  'NIFTYBEES.NS'    : 'niftybees.in',
+  'DFNS.L' : 'dfns.uk',
+  'SMH'    : 'smh.us',
+  'ISEM.L' : 'isem.uk',
+  'BGLD.L' : 'bgld.uk',
+};
+
+async function fetchStooq(ticker) {
+  const s = STOOQ[ticker] || ticker.toLowerCase();
+  // Fetch 10 days of daily data so we can compute multi-day changes
+  const url = `https://stooq.com/q/l/?s=${encodeURIComponent(s)}&f=sd2t2ohlcv&h&e=csv`;
+  try {
+    const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text = await res.text();
+    // Parse CSV — first line is header, data rows follow newest-first
+    const lines = text.trim().split('\n').slice(1).filter(l => l && !l.startsWith('No data'));
+    if(!lines.length) return null;
+    // Most recent row
+    const cols  = lines[0].split(',');
+    const price = parseFloat(cols[6]); // Close
+    const prev  = lines[1] ? parseFloat(lines[1].split(',')[6]) : price;
+    if(isNaN(price)) return null;
+    const chg = prev ? ((price - prev) / prev) * 100 : 0;
+    // Build array of closes for sparkline / multi-day changes
+    const closes = lines.map(l => parseFloat(l.split(',')[6])).filter(n => !isNaN(n));
+    return {price, prev, chg, closes};
+  } catch(e) {
+    return null;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// FX — Frankfurter.app (ECB data, native CORS, no key)
+// Works from file://, GitHub Pages, anywhere.
+// ══════════════════════════════════════════════════════
+async function loadFX() {
+  const el = document.getElementById('fx-grid');
+  el.innerHTML = FX.map((p,i) => `
+    <div class="fx-cell">
+      <div class="fx-pair">${p.label}</div>
+      <div class="fx-rate shimmer" id="fxr-${i}">——</div>
+      <div class="fx-chg neu" id="fxc-${i}"> </div>
+    </div>`).join('');
+
+  let rates = {};
+  try {
+    // Single call: base USD → get INR, NOK, EUR, GBP
+    // Then cross-rate: X/INR = INR_rate / X_rate
+    const res = await fetch(
+      'https://api.frankfurter.app/latest?from=USD&to=INR,NOK,EUR,GBP',
+      {signal: AbortSignal.timeout(8000)}
+    );
+    const d = await res.json();
+    if(d.rates && d.rates.INR) {
+      rates['USD'] = d.rates.INR;
+      rates['NOK'] = d.rates.INR / d.rates.NOK;
+      rates['EUR'] = d.rates.INR / d.rates.EUR;
+      rates['GBP'] = d.rates.INR / d.rates.GBP;
+    }
+  } catch(e) {
+    // Stooq FX fallback — they also have FX pairs
+    for(const pair of ['nok','usd','eur','gbp']) {
+      try {
+        const r = await fetch(`https://stooq.com/q/l/?s=${pair}inr&f=sd2t2ohlcv&h&e=csv`,
+          {signal: AbortSignal.timeout(6000)});
+        const t = await r.text();
+        const lines = t.trim().split('\n');
+        if(lines[1]) {
+          const v = parseFloat(lines[1].split(',')[6]);
+          if(!isNaN(v)) rates[pair.toUpperCase()] = v;
+        }
+      } catch(e2) {}
+    }
+  }
+
+  FX.forEach((p,i) => {
+    const el2 = document.getElementById('fxr-'+i);
+    if(!el2) return;
+    el2.className = 'fx-rate';
+    const rate = rates[p.from];
+    el2.textContent = rate ? rate.toFixed(p.from==='NOK' ? 4 : 2) : '—';
+  });
+}
+
+function fmtN(n) {
+  if(n===null||n===undefined) return '—';
+  if(n>=100000) return n.toLocaleString('en-IN',{maximumFractionDigits:0});
+  if(n>=10000)  return n.toLocaleString('en-US',{maximumFractionDigits:1});
+  if(n>=100)    return n.toFixed(2);
+  return n.toFixed(4);
+}
+
+function chgHTML(chg) {
+  if(chg===null||chg===undefined) return '<span class="mkt-chg neu">—</span>';
+  const cls=chg>0?'pos':chg<0?'neg':'neu';
+  return `<span class="mkt-chg ${cls}">${chg>0?'+':''}${chg.toFixed(2)}%</span>`;
+}
+
+function buildMktRow(id, label, name, price, chg) {
+  const priceStr = price!==null ? fmtN(price) : '<span class="shimmer">———</span>';
+  return `<div class="mkt-row" id="mrow-${id}">
+    <div><div class="mkt-ticker">${label}</div><div class="mkt-name">${name}</div></div>
+    <div class="mkt-price" id="mp-${id}">${priceStr}</div>
+    <span class="mkt-chg neu" id="mc-${id}">${chg!==null?chgHTML(chg).replace(/.*class="/,'').split('"')[0]:'—'}</span>
+  </div>`;
+}
+
+async function loadSection(items, containerId) {
+  const el = document.getElementById(containerId);
+  // Skeleton
+  el.innerHTML = items.map((item,i) => {
+    const id = containerId+'_'+i;
+    return `<div class="mkt-row" id="mrow-${id}">
+      <div><div class="mkt-ticker">${item.label}</div><div class="mkt-name">${item.name}</div></div>
+      <div class="mkt-price shimmer" id="mp-${id}">———</div>
+      <span class="mkt-chg neu" id="mc-${id}">—%</span>
+    </div>`;
+  }).join('');
+
+  // Fetch sequentially to avoid rate limits
+  for(let i=0;i<items.length;i++) {
+    const item = items[i];
+    const id = containerId+'_'+i;
+    const data = await fetchStooq(item.t);
+    const priceEl = document.getElementById('mp-'+id);
+    const chgEl   = document.getElementById('mc-'+id);
+    const rowEl   = document.getElementById('mrow-'+id);
+    if(data && priceEl) {
+      const old = priceCache[item.t];
+      priceCache[item.t] = data.price;
+      priceEl.className = 'mkt-price';
+      priceEl.textContent = fmtN(data.price);
+      if(chgEl) chgEl.outerHTML = chgHTML(data.chg);
+      if(rowEl && old!==undefined) {
+        rowEl.classList.remove('flash-g','flash-r');
+        void rowEl.offsetWidth;
+        rowEl.classList.add(data.price>old?'flash-g':'flash-r');
+      }
+    } else if(priceEl) {
+      priceEl.className='mkt-price';
+      priceEl.textContent='—';
+      if(chgEl) { chgEl.className='mkt-chg neu'; chgEl.textContent='—'; }
+    }
+    await new Promise(r=>setTimeout(r,500)); // Stooq rate-limit buffer
+  }
+}
+
+// ══════════════════════════════════
+// ══════════════════════════════════
+// NEWS — RSS via allorigins
+// ══════════════════════════════════
+const FEEDS = [
+  {url:'https://feeds.bbci.co.uk/news/england/london/rss.xml', src:'BBC', cls:'bbc'},
+  {url:'https://www.theguardian.com/uk/london/rss', src:'Guardian', cls:''},
+  {url:'https://www.cityam.com/feed/', src:'CityAM', cls:'fin'},
+];
+
+async function loadNews(force=false) {
+  if(newsLoaded && !force) return;
+  const el = document.getElementById('news-list');
+  el.innerHTML='<div class="news-loading">Fetching headlines…</div>';
+  let items = [];
+
+  for(const feed of FEEDS) {
+    try {
+      const proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(feed.url);
+      const res = await fetch(proxy);
+      const d = await res.json();
+      const xml = new DOMParser().parseFromString(d.contents,'text/xml');
+      Array.from(xml.querySelectorAll('item')).slice(0,6).forEach(item => {
+        const title = item.querySelector('title')?.textContent?.trim();
+        const link  = item.querySelector('link')?.textContent?.trim();
+        const pub   = item.querySelector('pubDate')?.textContent;
+        const cat   = item.querySelector('category')?.textContent?.trim();
+        if(title) items.push({title,link,pub,cat,src:feed.src,cls:feed.cls});
+      });
+    } catch(e) {}
+  }
+
+  if(!items.length) {
+    el.innerHTML='<div class="news-loading">Could not load headlines.<br>Check connection.<br><button class="refresh-btn" onclick="loadNews(true)">Retry</button></div>';
+    return;
+  }
+
+  items.sort((a,b) => new Date(b.pub)-new Date(a.pub));
+  items = items.slice(0,18);
+  document.getElementById('news-count').textContent = items.length+' stories';
+
+  el.innerHTML = items.map(item => {
+    const age = item.pub ? timeAgo(new Date(item.pub)) : '';
+    const safeLink = (item.link||'').replace(/'/g,"\\'");
+    return `<div class="news-item" onclick="window.open('${safeLink}','_blank')">
+      <div class="news-meta">
+        <span class="news-src ${item.cls}">${item.src}</span>
+        <span class="news-age">${age}</span>
+      </div>
+      <div class="news-hl">${item.title}</div>
+      ${item.cat?`<div class="news-tag">${item.cat}</div>`:''}
+    </div>`;
+  }).join('');
+
+  newsLoaded = true;
+}
+
+function timeAgo(d) {
+  const s = (Date.now()-d)/1000;
+  if(s<60) return 'just now';
+  if(s<3600) return Math.round(s/60)+'m ago';
+  if(s<86400) return Math.round(s/3600)+'h ago';
+  return Math.round(s/86400)+'d ago';
+}
+
+// ══════════════════════════════════
+// PORTFOLIO (static from screenshots)
+// ══════════════════════════════════
+function buildPortfolio() {
+  const pensionRows = document.getElementById('pension-rows');
+  pensionRows.innerHTML = NORWAY_STATIC.map(p => `
+    <div class="port-row">
+      <div><div class="port-fund">${p.label}</div><div class="port-type">${p.type}</div></div>
+      <div class="port-val">${p.val.toLocaleString('en-NO')} kr</div>
+      <div class="port-alloc ${p.chg>=0?'pos':'neg'}">${p.chg>=0?'+':''}${p.chg}%</div>
+    </div>`).join('');
+
+  document.getElementById('pension-bars').innerHTML = NORWAY_STATIC.map((p,i) => `
+    <div class="alloc-row">
+      <div class="alloc-label">${p.label}</div>
+      <div class="alloc-track"><div class="alloc-fill" style="width:${p.alloc}%;background:${COLORS[i]}"></div></div>
+      <div class="alloc-pct">${p.alloc}%</div>
+    </div>`).join('');
+
+  document.getElementById('thematic-port-rows').innerHTML = THEMATIC_PORT.map(name => `
+    <div class="port-row">
+      <div><div class="port-fund">${name}</div><div class="port-type">Thematic · Equal weight</div></div>
+      <div class="port-val" style="font-size:10px;color:var(--textlo)">Check broker</div>
+      <div class="port-alloc" style="color:var(--cyan)">20%</div>
+    </div>`).join('');
+
+  document.getElementById('thematic-bars').innerHTML = THEMATIC_PORT.map((name,i) => `
+    <div class="alloc-row">
+      <div class="alloc-label">${name}</div>
+      <div class="alloc-track"><div class="alloc-fill" style="width:20%;background:${COLORS[i]}"></div></div>
+      <div class="alloc-pct">20%</div>
+    </div>`).join('');
+}
+
+function buildNorway() {
+  document.getElementById('norway-list').innerHTML = NORWAY_STATIC.map(f => `
+    <div class="mkt-row">
+      <div><div class="mkt-ticker">${f.label}</div><div class="mkt-name">${f.type}</div></div>
+      <div class="mkt-price" style="font-size:10px;color:var(--textlo)">${f.val.toLocaleString('en-NO')} kr</div>
+      <span class="mkt-chg ${f.chg>=0?'pos':'neg'}">${f.chg>=0?'+':''}${f.chg}%</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════
+// MAIN REFRESH
+// ══════════════════════════════════
+async function refreshAll() {
+  document.getElementById('ptr').classList.add('show');
+  document.getElementById('updateTime').textContent='refreshing…';
+  newsLoaded=false;
+
+  await Promise.all([
+    loadWeather(),
+    loadFX(),
+  ]);
+
+  // Load sections sequentially to respect rate limits
+  await loadSection(INDICES, 'indices-list');
+  await loadSection(INDIA,   'india-list');
+  await loadSection(THEMATIC,'thematic-list');
+
+  document.getElementById('updateTime').textContent =
+    new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('ptr').classList.remove('show');
+}
+
+// ══════════════════════════════════
+// PULL TO REFRESH
+// ══════════════════════════════════
+let touchStartY=0;
+document.addEventListener('touchstart',e=>{touchStartY=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',e=>{
+  const diff=e.changedTouches[0].clientY-touchStartY;
+  if(diff>90&&window.scrollY<=0) refreshAll();
+},{passive:true});
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+// Detect file:// and warn user
+if(location.protocol === 'file:') {
+  document.getElementById('file-warning').style.display = 'block';
+}
+
+updateClocks();
+setInterval(updateClocks, 1000);
+buildPortfolio();
+buildNorway();
+refreshAll();
+setInterval(()=>{newsLoaded=false;refreshAll();}, 90000); // refresh every 90s
+</script>
+
+</body>
+</html>
